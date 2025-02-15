@@ -7,8 +7,10 @@
     "@supabase/supabase-js": "^2.48.1",
     "cra-template": "1.2.0",
     "react": "^19.0.0",
+    "react-date-picker": "^11.0.0",
+    "react-datetime-picker": "^6.0.1",
     "react-dom": "^19.0.0",
-    "react-scripts": "5.0.1",
+    "react-scripts": "^5.0.1",
     "web-vitals": "^4.2.4"
   },
   "scripts": {
