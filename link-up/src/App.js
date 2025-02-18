@@ -23,9 +23,9 @@ function App() {
     if (session) {
       // Retrieve the provider token from the session
       const fetchProviderToken = async () => {
-        const { data, error } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getUser();
         if (data) {
-          setProviderToken(data.session.provider_token);
+          setProviderToken(data.user.provider_token);
         }
         if (error) {
           console.error("Error fetching provider token:", error);

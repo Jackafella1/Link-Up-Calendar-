@@ -7,8 +7,8 @@ import { createClient } from '@supabase/supabase-js';
 import {SessionContextProvider} from '@supabase/auth-helpers-react'
 
 const supabase = createClient(
-  "https://nbfiohvnqwvbbftnwlrb.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5iZmlvaHZucXd2YmJmdG53bHJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkyMDM2NjYsImV4cCI6MjA1NDc3OTY2Nn0.1upq22LRtW-hMP3PqXop6cPU6spQtvw23I2AyLrdqBU"
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.REACT_APP_SUPABASE_ANON_KEY
 );
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
