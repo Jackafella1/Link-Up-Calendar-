@@ -1,136 +1,116 @@
-//import logo from './logo.svg';
-import './App.css';
-import 'react-datetime-picker/dist/DateTimePicker.css';
-import 'react-calendar/dist/Calendar.css';
-import 'react-clock/dist/Clock.css';
-import DateTimePicker from 'react-datetime-picker';
+// Import React hooks for managing state and side effects
 import { useState, useEffect } from 'react';
+// Import Supabase hooks to manage user session and interact with the Supabase backend
+import { useSession, useSupabaseClient, useSessionContext } from '@supabase/auth-helpers-react';
+// Import the page components for different app states
+import Login from './components/login.js';
+import GroupSetup from './components/groupSetup.js';
+import HomeScreen from './components/homeScreen.js';
+// Import the CSS file for styling the app
+import './App.css';
 
+// Define the main App component, which manages the overall app flow
 function App() {
-  const [ start, setStart ] = useState(new Date());
-  const [ end, setEnd ] = useState(new Date());
-  const [ eventName, setEventName ] = useState("");
-  const [ eventDescription, setEventDescription ] = useState("");
-  const [ providerToken, setProviderToken ] = useState(null);
+  // State to track if the user is in a group
+  const [isInGroup, setIsInGroup] = useState(false);
+  // State to track if the group membership check is still loading
+  const [loadingGroupCheck, setLoadingGroupCheck] = useState(true);
 
-  const session = useSession(); // tokens, when session exists we have a user
-  const supabase = useSupabaseClient(); // talk to supabase!
-  const { isLoading } = useSessionContext(); // loading state
+  // Get the current user session (null if not logged in)
+  const session = useSession();
+  // Get the Supabase client to interact with the Supabase backend (e.g., for database operations)
+  const supabase = useSupabaseClient();
+  // Get the session context to check if the session is still loading
+  const { isLoading } = useSessionContext();
 
+  // useEffect hook to run logic when the session changes (e.g., user logs in)
   useEffect(() => {
-    console.log("Session:", session);
-    if (session) {
-      // Retrieve the provider token from the session
-      const fetchProviderToken = async () => {
-        const { data, error } = await supabase.auth.getUser();
-        if (data) {
-          setProviderToken(data.user.provider_token);
-        }
-        if (error) {
-          console.error("Error fetching provider token:", error);
-        }
-      };
-      fetchProviderToken();
-    }
-  }, [session, supabase.auth]);
+  // Only proceed if the user is logged in (session exists)
+  if (session) {
+    // Function to add the user to the 'users' table in the database if they don't already exist
+    const addUserToDatabase = async () => {
+   // Check if the user already exists in the 'users' table by their email
+   const {data: existingUser, error: fetchError} = await supabase
+     .from('users') 
+     .select('*') 
+     .eq('email', session.user.email)
+     .single();
 
-  if (isLoading) {
-    return <></>
+  // If there's an error fetching the user (other than "not found"), log the error 
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    console.error('Error checking user:', fetchError);
+    return;
   }
+  // If the user doesn't exist, insert them into the 'users' table 
+  if (!existingUser) {
+    const { error: insertError} = await supabase
+      .from('users')
+      .insert({
+        user_id: session.user.id,
+        name: session.user.user_metadata.full_name || session.user.email.split('@')[0],// Use full name if available, otherwise derive from email
+        email: session.user.email, // User's email
+      });
 
-  async function googleSignIn() {
-    const {error} = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { 
-        scopes: 'https://www.googleapis.com/auth/calendar' 
-      }
-    });
-    if(error){
-      alert("Error logging in with Google provider with supabase");
-      console.log(error);
-    }
+  // If there's an error inserting the user, log the error  
+  if (insertError) {
+    console.error('Error adding user to database:', insertError);
   }
-
-  async function signOut() {
-    await supabase.auth.signOut();
   }
+  };
+  
+  // Function to check if the user is already in a group
+  const checkGroupMembership = async () => {
+  // Query the 'groups' table to see if the user is in any group
+  const { data, error} = await supabase
+    .from('groups')
+    .select('user_group_id')
+    .eq('user_id', session.user.id);
 
-  async function createCalenderEvent() { 
-    if (!session || !providerToken) {
-      alert("You need to be logged in to create an event");
-      return;
-    }
+  // If there's an error checking group membership, log the error and stop loading
+  if (error) {
+    console.error('Error checking group membership:', error);
+    setLoadingGroupCheck(false);
+    return;
+  }  
 
-    console.log("Creating event");
-    const event = {
-      'summary': eventName,
-      'description': eventDescription,
-      'start': {
-        'dateTime': start.toISOString(),
-        'timeZone': Intl.DateTimeFormat().resolvedOptions().timeZone // get the timezone of the user
-      },
-      'end': {
-        'dateTime': end.toISOString(), // end of the event
-        'timeZone': Intl.DateTimeFormat().resolvedOptions().timeZone // get the timezone of the user
-      },
-    }
-    console.log("Event data:", event);
-    console.log("Access token:", providerToken);
+  // Set the isInGroup state based on whether the user is in a group
+  setIsInGroup(data.length > 0);
+  // Stop loading group check
+  setLoadingGroupCheck(false);
+  };
 
-    await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
-      method: "POST",
-      headers: {
-        "Authorization": 'Bearer ' + session.provider_token,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(event)
-    })
-    .then((response) => {
-      console.log("API response:", response);
-      return response.json();
-    })
-    .then((data) => {
-      console.log("API response data:", data);
-      if (data.error) {
-        console.error("Error creating event:", data.error);
-        alert("Error creating event: " + data.error.message);
-      } else {
-        alert("Event created, check your google calendar");
-      }
-    })
-    .catch((error) => {
-      console.error("Error creating event:", error);
-      alert("Error creating event");
-    });
-  }
-
-  return (
-    <div className="App">
-      <div style={{width: "400px", margin: "30px auto"}}>
-        {session ? 
-        <>
-        <h2> Hey there {session.user.email} </h2>
-        <p>Start of your event</p>
-        <DateTimePicker onChange={setStart} value={start} />
-        <p>End of your event</p>
-        <DateTimePicker onChange={setEnd} value={end} />
-        <p>Event name</p>
-        <input type="text" onChange={(e) => setEventName(e.target.value)} />
-        <p>Event description</p>
-        <input type="text" onChange={(e) => setEventDescription(e.target.value)} />
-        <hr />
-        <button onClick={() => createCalenderEvent()}>Create Calendar Event</button>
-        <p></p>
-        <button onClick={() => signOut()}>Sign Out</button>
-        </>
-        :
-        <>
-           <button onClick={() => googleSignIn()}>Sign In with Google</button>
-        </>
-        }
-     </div>
-    </div>
-  );
+  // Call the functions to add the user to the database and check group membership
+  addUserToDatabase();
+  checkGroupMembership();
 }
+  }, [session, supabase]); // Run this effect when the session or supabase client changes
 
+  // If the session is still loading, return an empty fragment (same as original behavior)
+  if (isLoading) {
+    return <></>;
+  }
+
+  // If the group membership check is still loading, display a loading message
+  if (loadingGroupCheck) {
+    return <div>Loading...</div>;
+  }
+
+  // If the user is not logged in (no session), render the Login component
+  if (!session) {
+    return <Login />;
+  }
+  // If the user is logged in but not in a group, render the GroupSetup component
+  if (!isInGroup) {
+    return <GroupSetup onGroupJoined={() => setIsInGroup(true)} />;
+  }
+
+  // If the user is logged in and in a group, render the HomeScreen component
+  return <HomeScreen setIsInGroup={setIsInGroup} />;
+}
+// Export the App component as the default export
 export default App;
+
+    
+
+
+  
