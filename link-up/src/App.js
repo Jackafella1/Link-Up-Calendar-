@@ -3,7 +3,6 @@ import './App.css';
 import 'react-datetime-picker/dist/DateTimePicker.css';
 import 'react-calendar/dist/Calendar.css';
 import 'react-clock/dist/Clock.css';
-import { useSession, useSupabaseClient, useSessionContext } from '@supabase/auth-helpers-react'
 import DateTimePicker from 'react-datetime-picker';
 import { useState, useEffect } from 'react';
 
