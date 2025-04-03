@@ -1,7 +1,9 @@
+import { useEffect } from 'react'; // Added to define useEffect
 // Import necessary hooks from Supabase auth helpers to manage user session and authentication
 import { useSession, useSupabaseClient, useSessionContext } from '@supabase/auth-helpers-react'
 // Define the Login component, which handles user authentication via Google Sign-In
 function Login() {
+    
 // Get the current user session (null if not logged in)
 const session = useSession();
 // Get the Supabase client to interact with the Supabase backend (e.g., for authentication)
@@ -9,13 +11,19 @@ const supabase = useSupabaseClient();
 // get the session context to check if sessesion is still loading
 const { isLoading } = useSessionContext();
 
+useEffect(() => {
+    console.log('Login component mounted, isLoading:', isLoading, 'session:', session);
+  }, [isLoading, session]); // Log on mount
+
+console.log('Login component, rendered, isLoading:',  isLoading, 'session:', session); // Add this for debugging
+
 // Function to handle Google Sign-in using Supabase's OAuth authentication.
-aysync function googleSigIn() {
+async function googleSignIn() {
     // attempt to sign in with Google, requesting access to the user's Google Calandar
-    const { error } = await supabase.auth.sigInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google', //specify Google as OAuth provider
         options: {
-          scopes: 'https://www.googleapis.co/auth/calendar', // request access to Google Calendar for event creation
+          scopes: 'https://www.googleapis.com/auth/calendar', // request access to Google Calendar for event creation
         },
 
     });
@@ -23,11 +31,14 @@ aysync function googleSigIn() {
     if (error) {
         alert( 'Error logging in with Google provider with Supabase');
         console.log(error);
+    } else {
+        console.log('Sign-in attempted, session after attempt:', session);  
     }
     }
+    
     // if the session is still loading, display a loading message to the to the user 
     if (isLoading) {
-        return<div>Loading...</div>
+        return <div>Loading...</div>
     }
 
     //If the user is logged in (session exits), return null
@@ -46,7 +57,7 @@ aysync function googleSigIn() {
     return (
         <div style={{ width: '400px', margin: '30px auto' }}>
         {/*Display the app title */}
-        <h2>Link Up Calandar</h2>
+        <h2>Link Up Calendar</h2>
         {/* Button to trigger Google Sign-in */}
         <button onClick={googleSignIn}>Sign In with Google</button>
         </div>

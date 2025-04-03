@@ -6,10 +6,9 @@ import reportWebVitals from './reportWebVitals';
 import { createClient } from '@supabase/supabase-js';
 import {SessionContextProvider} from '@supabase/auth-helpers-react'
 
-const supabase = createClient(
-  process.env.REACT_APP_SUPABASE_URL,
-  process.env.REACT_APP_SUPABASE_ANON_KEY
-);
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
